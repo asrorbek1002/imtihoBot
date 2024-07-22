@@ -43,6 +43,18 @@ def save_data(photo_id, caption):
 
 
 # Jadval yaratish va 24 soatdan keyin o'chirish uchun fon funksiyasi
-def timed_delete():
-    time.sleep(86400)  # 24 soat = 86400 sekund
+def timed_delete(vaqt):
+    time.sleep(vaqt)  # 24 soat = 86400 sekund
     delete_table()
+
+def get_questions_count() -> int:
+    connection = create_connection()
+    cursor = connection.cursor()
+    
+    # Get the count of rows in the questions table
+    cursor.execute('SELECT COUNT(*) FROM questions')
+    count = cursor.fetchone()[0]
+    
+    connection.close()
+    
+    return count
