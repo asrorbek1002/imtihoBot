@@ -55,8 +55,8 @@ def tech_menu(update, context):
             KeyboardButton(text="Xabar yuborish")
         ],
         [
-            KeyboardButton(text="Testni boshlash"),
-            KeyboardButton(text="Guruh yaratish")
+            KeyboardButton(text="Testni boshlash")
+            # KeyboardButton(text="Guruh yaratish")
         ]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
