@@ -1,6 +1,6 @@
 from telegram.ext import ConversationHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from .base import create_connection
+from .base import create_connection, delete_table
 import threading
 from telegram.error import TelegramError
 import datetime
@@ -153,6 +153,7 @@ def format_user_answers(context):
             print(e)
     
     conn.close()
+    delete_table()
 
 def notify_admin(context):
     
@@ -328,3 +329,4 @@ def format_user_answers_next(context):
             print(e)
     
     conn.close()
+    delete_table()
