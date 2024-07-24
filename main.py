@@ -5,7 +5,7 @@ from bot_functions.start_task import add_task, input_task, task_count, start_tas
 from bot_functions.base import delete_table, create_connection
 from bot_functions.register import first_name, last_name, age, end_register
 from bot_functions.inline_button import button_callback
-from bot_functions.send_message import send_task, vaqt
+from bot_functions.send_message import send_task, vaqt, start_task_next, get_time, get_duration
 
 conn = create_connection()
 cur = conn.cursor()
@@ -80,7 +80,7 @@ def delete_base(update, context):
 
 def main():
 
-    updater = Updater(token='7101723882:AAH3Eq6-XpecsNMU_TB6EtOYRFeH6Dz-4-o')
+    updater = Updater(token='6854701223:AAEGihOzIfg0dwv6JbxOg7Tqzo-2DbQKhaw')
 
     dp = updater.dispatcher
 
@@ -110,11 +110,20 @@ def main():
     ))
    
     dp.add_handler(ConversationHandler(
-        entry_points=[MessageHandler(Filters.regex(r"^Boshlаsh"), vaqt)],
+        entry_points=[MessageHandler(Filters.regex(r"^Boshlаsh$"), vaqt)],
         states={
             'VAQT': [MessageHandler(Filters.text, send_task)]
         },
         fallbacks={CommandHandler('cancel', cancel)}
+    ))
+
+    dp.add_handler(ConversationHandler(
+        entry_points=[MessageHandler(Filters.regex(r'^Keyinroq boshlаsh$'), start_task_next)],
+        states={
+            "TIME_NEXT": [MessageHandler(Filters.text & ~Filters.command, get_time)],
+            "DURATION_NEXT": [MessageHandler(Filters.text & ~Filters.command, get_duration)],
+        },
+        fallbacks=[CommandHandler('cancel', cancel)],
     ))
 
     dp.add_handler(MessageHandler(Filters.all, start))
