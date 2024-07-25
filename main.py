@@ -1,11 +1,11 @@
 from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHandler, Filters, CallbackQueryHandler
 from telegram import KeyboardButton, ReplyKeyboardMarkup
-import sqlite3
 from bot_functions.start_task import add_task, input_task, task_count, start_task
 from bot_functions.base import delete_table, create_connection
 from bot_functions.register import first_name, last_name, age, end_register
 from bot_functions.inline_button import button_callback
 from bot_functions.send_message import send_task, vaqt, start_task_next, get_time, get_duration
+from bot_functions.view_user import start_view_user, get_user_info
 
 conn = create_connection()
 cur = conn.cursor()
@@ -79,16 +79,31 @@ def delete_base(update, context):
     update.message.reply_text("Testlar jamlangan baza o'chirildi")
 
 def main():
-
-    updater = Updater(token='6854701223:AAEGihOzIfg0dwv6JbxOg7Tqzo-2DbQKhaw')
-
+    # Botni backendga ulash
+    updater = Updater(token='7101723882:AAH3Eq6-XpecsNMU_TB6EtOYRFeH6Dz-4-o')
     dp = updater.dispatcher
 
+    dp.add_handler(CommandHandler("start", get_user_info, Filters.regex("tg_")))
+
+    # /start comandasiga javob beruvchi funksiya
     dp.add_handler(CommandHandler('start', start))
+
+    # Admin hamda o'qituvchiga ko'rinadigan menu
     dp.add_handler(CommandHandler('teacher', tech_menu))
+
+    # questions nomli bazani o'chirish uchun comanda
     dp.add_handler(CommandHandler('dlt_base', delete_base))
+
+    # Imtihonni boshlash uchun funksiya
     dp.add_handler(MessageHandler(Filters.regex(r"^Testni boshlash$"), start_task))
+
+    # O'quvchilarni ro'yxatini olish uchun comanda
+    dp.add_handler(MessageHandler(Filters.regex(r"^O'quvchilar ro'yxati$"), start_view_user))
+
+    # Inline tugmani boasilganda ushlab oluvchi funksiya
     dp.add_handler(CallbackQueryHandler(button_callback))
+
+    # IMtihonni boshlash uchun asosiy funksiya
     handler = ConversationHandler(
         entry_points=[MessageHandler(Filters.regex(r"^Imtihon boshlash$"), task_count)],
         states={
@@ -99,6 +114,7 @@ def main():
     )
     dp.add_handler(handler)
 
+    # Ro'yxatdan o'tish uchun funksiya
     dp.add_handler(ConversationHandler(
         entry_points=[MessageHandler(Filters.contact, first_name)],
         states={
@@ -109,6 +125,7 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel)]
     ))
    
+    # Imtihon boshlangandan so'ng uni qancha vaqt bo'lishini hisoblaydigan funksiya
     dp.add_handler(ConversationHandler(
         entry_points=[MessageHandler(Filters.regex(r"^Boshlаsh$"), vaqt)],
         states={
@@ -117,6 +134,7 @@ def main():
         fallbacks={CommandHandler('cancel', cancel)}
     ))
 
+    # Imtihon boshlangandan so'ng uni qachon va qancha vaqt bo'lishini hisoblaydi
     dp.add_handler(ConversationHandler(
         entry_points=[MessageHandler(Filters.regex(r'^Keyinroq boshlаsh$'), start_task_next)],
         states={
@@ -126,9 +144,13 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel)],
     ))
 
+    # Har ehtimolga qarshi botga har xil habar yuborilsa start funksiyani chaqiradigan funksiya
     dp.add_handler(MessageHandler(Filters.all, start))
+
+
     updater.start_polling()
     updater.idle()
+
 
 if __name__=='__main__':
     main()
