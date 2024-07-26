@@ -27,7 +27,7 @@ def start_view_user(update, context):
 def get_user_info(update, context):
     text = context.args
     if not text:
-        update.message.reply_text("Iltimos, foydalanuvchi ID sini kiriting.")
+        update.message.reply_text("Qandaydir xatolik yuz berdi.")
         return
     user_id = text[0]
     textlist = user_id.split("_")
@@ -43,7 +43,8 @@ def get_user_info(update, context):
             f"<b><i>👤Foydalanuvchi</i>: <a href='tg://user?id={user_id}'>{first_name}</a></b>\n"
             f"<b><i>👤Familiya</i>: {last_name}</b>\n"
             f"<b><i>📞Telefon raqami</i>: {phone}</b>\n"
-            f"<b><i>📅Yoshi</i>: {age}</b>"
+            f"<b><i>📅Yoshi</i>: {age}</b>\n"
+            f"ID <code>{user_id}</code>"
         )
     else:
         message = "<i>Foydalanuvchi topilmadi yoki xatolik yuz berdi</i>"

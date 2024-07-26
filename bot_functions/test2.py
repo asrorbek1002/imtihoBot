@@ -1,120 +1,112 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputMediaVideo, InputFile
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, Filters, ConversationHandler, CallbackContext
-from base import create_connection
+import sqlite3
+from telegram import Update, TelegramError
+from telegram.ext import CallbackContext
 
+# Ma'lumotlar bazasiga ulanish funksiyasi
+def create_connection():
+    conn = sqlite3.connect('your_database.db')
+    return conn
 
-# States
-CHOOSING, SENDING_MESSAGE, SENDING_PHOTO, SENDING_VIDEO, SENDING_FILE = range(5)
-
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text('Salom! /send_message komandasi bilan xabar yuborishingiz mumkin.')
-
-def send_message(update: Update, context: CallbackContext):
-    keyboard = [
-        [
-            InlineKeyboardButton("Oddiy xabar", callback_data=str(SENDING_MESSAGE)),
-            InlineKeyboardButton("Rasmli xabar", callback_data=str(SENDING_PHOTO)),
-        ],
-        [
-            InlineKeyboardButton("Videoli xabar", callback_data=str(SENDING_VIDEO)),
-            InlineKeyboardButton("Faylli xabar", callback_data=str(SENDING_FILE)),
-        ],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('Qanday xabar yubormoqchisiz?', reply_markup=reply_markup)
-    return CHOOSING
-
-def button(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-    choice = int(query.data)
-    
-    if choice == SENDING_MESSAGE:
-        query.edit_message_text(text="Oddiy xabaringizni kiriting:")
-        return SENDING_MESSAGE
-    elif choice == SENDING_PHOTO:
-        query.edit_message_text(text="Rasm yuboring:")
-        return SENDING_PHOTO
-    elif choice == SENDING_VIDEO:
-        query.edit_message_text(text="Video yuboring:")
-        return SENDING_VIDEO
-    elif choice == SENDING_FILE:
-        query.edit_message_text(text="Fayl va tavsifini yuboring:")
-        return SENDING_FILE
-
-def broadcast(update: Update, context: CallbackContext, media_type=None):
+# Admin user_id'larini olish funksiyasi
+def get_admin_ids_by_job():
     conn = create_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT user_id FROM users')
-    user_ids = cursor.fetchall()
+    cur = conn.cursor()
+    cur.execute("SELECT user_id FROM users WHERE job = 'Admin' OR job = 'teacher'")
+    admin_ids = cur.fetchall()
     conn.close()
+    return [admin_id[0] for admin_id in admin_ids]
+
+def format_user_answers(context: CallbackContext):
+    conn = create_connection()
+    cur = conn.cursor()
     
-    for user_id in user_ids:
-        user_id = user_id[0]
-        if media_type == 'text':
-            context.bot.send_message(chat_id=user_id, text=context.user_data['message'])
-        elif media_type == 'photo':
-            context.bot.send_photo(chat_id=user_id, photo=context.user_data['photo'], caption=context.user_data['caption'])
-        elif media_type == 'video':
-            context.bot.send_video(chat_id=user_id, video=context.user_data['video'], caption=context.user_data['caption'])
-        elif media_type == 'file':
-            context.bot.send_document(chat_id=user_id, document=context.user_data['file'], caption=context.user_data['caption'])
+    # users jadvalidan user_id'larni olish
+    cur.execute('SELECT * FROM users')
+    user_ids = cur.fetchall()
+    
+    # Natijalarni saqlash uchun ro'yxatlar
+    all_users_summary = []
+    zero_incorrect_summary = []
+    one_incorrect_summary = []
 
-def handle_message(update: Update, context: CallbackContext):
-    text = update.message.text
-    context.user_data['message'] = text
-    update.message.reply_text("Xabarni qabul qildim. Hamma foydalanuvchilarga yuborayapman.")
-    broadcast(update, context, 'text')
-    return ConversationHandler.END
+    # User_id'larni aylantirib chiqing va adminga xabar yuboring
+    for user in user_ids:
+        user_id = user[0]  # Extract the actual user_id from the tuple
+        first_name = user[1]
+        phone_number = user[3]
 
-def handle_photo(update: Update, context: CallbackContext):
-    photo = update.message.photo[-1].file_id
-    caption = update.message.caption or ""
-    context.user_data['photo'] = photo
-    context.user_data['caption'] = caption
-    update.message.reply_text("Rasmni qabul qildim. Hamma foydalanuvchilarga yuborayapman.")
-    broadcast(update, context, 'photo')
-    return ConversationHandler.END
+        user_answers = context.dispatcher.user_data.get(user_id, {})
 
-def handle_video(update: Update, context: CallbackContext):
-    video = update.message.video.file_id
-    caption = update.message.caption or ""
-    context.user_data['video'] = video
-    context.user_data['caption'] = caption
-    update.message.reply_text("Videoni qabul qildim. Hamma foydalanuvchilarga yuborayapman.")
-    broadcast(update, context, 'video')
-    return ConversationHandler.END
+        # Javoblarni tartib bilan chiroyli qilib formatlash
+        formatted_answers = []
+        correct_count = 0
+        incorrect_count = 0
 
-def handle_file(update: Update, context: CallbackContext):
-    document = update.message.document.file_id
-    caption = update.message.caption or ""
-    context.user_data['file'] = document
-    context.user_data['caption'] = caption
-    update.message.reply_text("Faylni qabul qildim. Hamma foydalanuvchilarga yuborayapman.")
-    broadcast(update, context, 'file')
-    return ConversationHandler.END
+        try:
+            # 'duration' kalitini chiqarib tashlash
+            filtered_answers = {k: v for k, v in user_answers.items() if k.isdigit()}
+            
+            for question, answer in sorted(filtered_answers.items(), key=lambda x: int(x[0])):
+                formatted_answers.append(f"{question}-savol {answer}")
+                if "To'g'ri✅" in answer:
+                    correct_count += 1
+                else:
+                    incorrect_count += 1
 
-def main():
-    updater = Updater("7101723882:AAH3Eq6-XpecsNMU_TB6EtOYRFeH6Dz-4-o", use_context=True)
-    dp = updater.dispatcher
+            formatted_answers_text = "\n".join(formatted_answers)
+            summary_text = f"<b>Jami to'g'ri javoblar {correct_count} ta,\nJami xato javoblar {incorrect_count} ta</b>"
 
-    conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('send_message', send_message)],
-        states={
-            CHOOSING: [CallbackQueryHandler(button)],
-            SENDING_MESSAGE: [MessageHandler(Filters.text & ~Filters.command, handle_message)],
-            SENDING_PHOTO: [MessageHandler(Filters.photo, handle_photo)],
-            SENDING_VIDEO: [MessageHandler(Filters.video, handle_video)],
-            SENDING_FILE: [MessageHandler(Filters.document, handle_file)],
-        },
-        fallbacks=[CommandHandler('start', start)],
-    )
+            response_text = f"Natijangiz\n{formatted_answers_text}\n\n{summary_text}"
 
-    dp.add_handler(CommandHandler('start', start))
-    dp.add_handler(conv_handler)
+            # Foydalanuvchiga javobni yuborish
+            context.bot.send_message(chat_id=user_id, text=response_text, parse_mode="HTML")
 
-    updater.start_polling()
-    updater.idle()
+            if incorrect_count == 0:
+                user_summary = (
+                    f"<b><a href='tg://user?id={user_id}'>{first_name}</a>ning Imtihon natijalari:\n\n"
+                    f"\t✅To'g'ri javoblar: {correct_count} ta\n"
+                    f"\t❌Noto'g'ri javoblar: {incorrect_count} ta\n"
+                    "➖➖➖➖➖➖"
+                )
+                zero_incorrect_summary.append(user_summary)
+            
+            elif incorrect_count == 1:
+                user_summary = (
+                    f"<b><a href='tg://user?id={user_id}'>{first_name}</a>ning Imtihon natijalari:\n\n"
+                    f"\t✅To'g'ri javoblar: {correct_count} ta\n"
+                    f"\t❌Noto'g'ri javoblar: {incorrect_count} ta\n"
+                    "➖➖➖➖➖➖"
+                )
+                one_incorrect_summary.append(user_summary)
 
-if __name__ == '__main__':
-    main()
+        except TelegramError as e:
+            print(e)
+    
+    # Adminlarga incorrect_count 0 va 1 bo'lgan foydalanuvchilarning natijalarini yuborish
+    admin_ids = get_admin_ids_by_job()
+    if zero_incorrect_summary:
+        zero_incorrect_summary_text = "\n\n".join(zero_incorrect_summary)
+        try:
+            for admin_id in admin_ids:
+                context.bot.send_message(chat_id=admin_id, text=f"<b>Jami xato qilmagan foydalanuvchilar:</b>\n\n{zero_incorrect_summary_text}", parse_mode="HTML")
+        except TelegramError as e:
+            print(e)
+    
+    if one_incorrect_summary:
+        one_incorrect_summary_text = "\n\n".join(one_incorrect_summary)
+        try:
+            for admin_id in admin_ids:
+                context.bot.send_message(chat_id=admin_id, text=f"<b>Jami 1 ta xato qilgan foydalanuvchilar:</b>\n\n{one_incorrect_summary_text}", parse_mode="HTML")
+        except TelegramError as e:
+            print(e)
+    
+    conn.close()
+    delete_table()
+
+# Ma'lumotlar bazasidagi jadvalni o'chirish funksiyasi
+def delete_table():
+    conn = create_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM users")  # Bu yerda jadvalni to'liq o'chirishni ifoda qilganman, kerakli bo'lsa boshqa operatsiyani kiriting
+    conn.commit()
+    conn.close()

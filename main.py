@@ -6,12 +6,13 @@ from bot_functions.register import first_name, last_name, age, end_register
 from bot_functions.inline_button import button_callback
 from bot_functions.send_message import send_task, vaqt, start_task_next, get_time, get_duration, send_message, broadcast, button, handle_file, handle_message, handle_photo, handle_video
 from bot_functions.view_user import start_view_user, get_user_info
-
+from bot_functions.add_teacher import add_teacher, handle_user_id, dell_teacher, handle_user_id_student
+from bot_functions.help import help
 
 # States
 CHOOSING, SENDING_MESSAGE, SENDING_PHOTO, SENDING_VIDEO, SENDING_FILE = range(5)
 
-
+# foydalanuvchilarning malumotini saqlash ucun baza yaratadio
 conn = create_connection()
 cur = conn.cursor()
 cur.execute("""CREATE TABLE IF NOT EXISTS users (
@@ -23,7 +24,7 @@ cur.execute("""CREATE TABLE IF NOT EXISTS users (
             job TEXT NOT NULL
         )
 """)
-
+# Agar baza yangi yaaratilgan bo'lsa adminlarni bazaga qo'shadi
 cur.execute('SELECT COUNT(*) FROM users')
 count = cur.fetchone()[0]
 if count == 0:
@@ -47,8 +48,8 @@ def start(update, context):
         update.message.reply_text(f"Assalomu alaykum <a href='tg://user?id={user_id}'>{first_name}</a>! Uzur sizni tanimadim iltimos raqamingizni menga yuboring.", parse_mode="HTML", reply_markup=reply_markup_contact)
         return 'PHONE_NUMBER'
     else:
-        delete_markup = ReplyKeyboardRemove()
-        update.message.reply_text(f"Assalomu alaykum, <a href='tg://user?id={user_id}'>{first_name}</a>!\n\n", parse_mode="HTML", reply_markup=delete_markup)
+        help_markup = ReplyKeyboardMarkup([[KeyboardButton(text="Bot haqida")]], resize_keyboard=True, one_time_keyboard=True)
+        update.message.reply_text(f"Assalomu alaykum, <a href='tg://user?id={user_id}'>{first_name}</a>!\n\n", parse_mode="HTML", reply_markup=help_markup)
 
 def cancel(update, context):
     update.message.reply_text("Bekor qilindi")
@@ -80,6 +81,10 @@ def main():
     # O'quvchilarni ro'yxatini olish uchun comanda
     dp.add_handler(MessageHandler(Filters.regex(r"^O'quvchilar ro'yxati$"), start_view_user))
 
+    # bot haqida malumot beruvchu funksiyalar
+    dp.add_handler(MessageHandler(Filters.regex(r"^Bot haqida$"), help))
+    dp.add_handler(CommandHandler('help', help))
+
     # IMtihonni boshlash uchun asosiy funksiya
     handler = ConversationHandler(
         entry_points=[MessageHandler(Filters.regex(r"^Imtihon boshlash$"), task_count)],
@@ -87,7 +92,7 @@ def main():
             'TASK COUNT':[MessageHandler(Filters.text & ~Filters.command, add_task)],
             'TASK PHOTO':[MessageHandler(Filters.photo , input_task)]
         },
-        fallbacks=[CommandHandler('cancel', start_task)]
+        fallbacks=[CommandHandler('cancel', cancel)]
     )
     dp.add_handler(handler)
 
@@ -121,6 +126,7 @@ def main():
         fallbacks=[CommandHandler('cancel', cancel)],
     ))
 
+    # Foydalanuvchilarga xabar yuboruvchi funksiya
     dp.add_handler(ConversationHandler(
         entry_points=[MessageHandler(Filters.regex(r'^Xabar yuborish$'), send_message)],
         states={
@@ -130,13 +136,28 @@ def main():
             SENDING_VIDEO: [MessageHandler(Filters.video, handle_video)],
             SENDING_FILE: [MessageHandler(Filters.document, handle_file)],
         },
-        fallbacks=[CommandHandler('start', start)],
+        fallbacks=[CommandHandler('cancel', cancel)],
     ))
 
+    # Bot uchun yangi admin tayinlash
+    dp.add_handler(ConversationHandler(
+        entry_points=[CommandHandler('add_teacher', add_teacher)],
+        states={
+            'WAITING_FOR_USER_ID':[MessageHandler(Filters.text, handle_user_id)]
+        },
+        fallbacks=[CommandHandler('cancel', cancel)]
+    ))
+
+    dp.add_handler(ConversationHandler(
+        entry_points=[CommandHandler('del_teacher', dell_teacher)],
+        states={
+            'WAITING_FOR_USER_ID_FOR_DEL':[MessageHandler(Filters.text, handle_user_id_student)]
+        },
+        fallbacks=[CommandHandler('cancel', cancel)]
+    ))
 
     # Inline tugmani boasilganda ushlab oluvchi funksiya
     dp.add_handler(CallbackQueryHandler(button_callback))
-
 
     # Har ehtimolga qarshi botga har xil habar yuborilsa start funksiyani chaqiradigan funksiya
     dp.add_handler(MessageHandler(Filters.all, start))

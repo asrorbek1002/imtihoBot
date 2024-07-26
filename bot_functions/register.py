@@ -1,6 +1,6 @@
-from telegram.ext import CommandHandler, MessageHandler, Filters, ConversationHandler
-from telegram import ReplyKeyboardRemove
-from .base import create_connection
+from telegram.ext import ConversationHandler
+from .base import create_connection, get_Admin_ids
+from telegram.error import TelegramError
 
 def first_name(update, context):
     phone_number = update.message.contact.phone_number
@@ -37,4 +37,10 @@ def end_register(update, context):
     con.commit()
     con.close()
     update.message.reply_text("<b>Siz ro'yxatdan o'tdingiz</b>\n<i>/start comandasini qayta kiriting</i>", parse_mode="HTML")
+    admins = get_Admin_ids()
+    for i in admins:
+        try:
+            context.bot.send_message(chat_id=i, text=f"<b>Yangi foyalanuvchi botdan ro'yxatdan o'tdi\n\nIsm: <a href='tg//user?id={user_id}'>{context.user_data['first_name']}</a>\n<i>Familiyasi</i>: {context.user_data['last_name']}\n<i>Telefon raqami</i>: {context.user_data['phone_number']}\n<i>Yoshi</i>: {age}</b>")
+        except TelegramError as e:
+            print(e)
     return ConversationHandler.END
