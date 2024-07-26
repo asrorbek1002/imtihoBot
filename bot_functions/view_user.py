@@ -15,7 +15,7 @@ def start_view_user(update, context):
         messages = []
         for user in users:
             user_id, first_name, last_name, _, _, _ = user
-            message = f"Foydalnuvchi: {first_name} {last_name}\nU haqida: <a href='https://t.me/{Bot_username}?start=tg_{user_id}'>LINK</a>"
+            message = f"<b>👤Foydalnuvchi: <i>{first_name} {last_name}</i>\n📎U haqida: <a href='https://t.me/{Bot_username}?start=tg_{user_id}'>LINK</a></b>"
             messages.append(message)
         
         reply_text = "\n\n".join(messages)
@@ -40,10 +40,10 @@ def get_user_info(update, context):
     if user_info:
         user_id, first_name, last_name, phone, age, role = user_info
         message = (
-            f"<b><i>Foydalanuvchi</i>: <a href='tg://user?id={user_id}'>{first_name}</a></b>\n"
-            f"<b><i>Familiya</i>: {last_name}</b>\n"
-            f"<b><i>Telefon raqami</i>: {phone}</b>\n"
-            f"<b><i>Yoshi</i>: {age}</b>"
+            f"<b><i>👤Foydalanuvchi</i>: <a href='tg://user?id={user_id}'>{first_name}</a></b>\n"
+            f"<b><i>👤Familiya</i>: {last_name}</b>\n"
+            f"<b><i>📞Telefon raqami</i>: {phone}</b>\n"
+            f"<b><i>📅Yoshi</i>: {age}</b>"
         )
     else:
         message = "<i>Foydalanuvchi topilmadi yoki xatolik yuz berdi</i>"

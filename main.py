@@ -1,11 +1,16 @@
 from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHandler, Filters, CallbackQueryHandler
-from telegram import KeyboardButton, ReplyKeyboardMarkup
-from bot_functions.start_task import add_task, input_task, task_count, start_task
+from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from bot_functions.start_task import add_task, input_task, task_count, start_task, tech_menu
 from bot_functions.base import delete_table, create_connection
 from bot_functions.register import first_name, last_name, age, end_register
 from bot_functions.inline_button import button_callback
-from bot_functions.send_message import send_task, vaqt, start_task_next, get_time, get_duration
+from bot_functions.send_message import send_task, vaqt, start_task_next, get_time, get_duration, send_message, broadcast, button, handle_file, handle_message, handle_photo, handle_video
 from bot_functions.view_user import start_view_user, get_user_info
+
+
+# States
+CHOOSING, SENDING_MESSAGE, SENDING_PHOTO, SENDING_VIDEO, SENDING_FILE = range(5)
+
 
 conn = create_connection()
 cur = conn.cursor()
@@ -42,33 +47,8 @@ def start(update, context):
         update.message.reply_text(f"Assalomu alaykum <a href='tg://user?id={user_id}'>{first_name}</a>! Uzur sizni tanimadim iltimos raqamingizni menga yuboring.", parse_mode="HTML", reply_markup=reply_markup_contact)
         return 'PHONE_NUMBER'
     else:
-        update.message.reply_text(f"Assalomu alaykum, <a href='tg://user?id={user_id}'>{first_name}</a>!\n\n", parse_mode="HTML")
-
-
-def tech_menu(update, context):
-    first_name = update.message.from_user.first_name
-    user_id = update.message.from_user.id
-
-    keyboard = [
-        [
-            KeyboardButton(text='O\'quvchilar ro\'yxati'),
-            KeyboardButton(text="Xabar yuborish")
-        ],
-        [
-            KeyboardButton(text="Testni boshlash")
-            # KeyboardButton(text="Guruh yaratish")
-        ]
-    ]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
-    conn = create_connection()
-    cur = conn.cursor()
-    cur.execute('SELECT * FROM users WHERE user_id=?', (user_id, ))
-    user = cur.fetchone()
-    print(user)
-    if user[5] in ['teacher', 'Admin']:
-        update.message.reply_text(f"Salom {first_name}!\nMenulardan birini tanlang", reply_markup=reply_markup)
-    else:
-        start(update, context)
+        delete_markup = ReplyKeyboardRemove()
+        update.message.reply_text(f"Assalomu alaykum, <a href='tg://user?id={user_id}'>{first_name}</a>!\n\n", parse_mode="HTML", reply_markup=delete_markup)
 
 def cancel(update, context):
     update.message.reply_text("Bekor qilindi")
@@ -80,7 +60,7 @@ def delete_base(update, context):
 
 def main():
     # Botni backendga ulash
-    updater = Updater(token='7101723882:AAH3Eq6-XpecsNMU_TB6EtOYRFeH6Dz-4-o')
+    updater = Updater(token='7045575392:AAEkOaUsRov-yUMWErthtEE1ycMnpmAUM8Q')
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", get_user_info, Filters.regex("tg_")))
@@ -99,9 +79,6 @@ def main():
 
     # O'quvchilarni ro'yxatini olish uchun comanda
     dp.add_handler(MessageHandler(Filters.regex(r"^O'quvchilar ro'yxati$"), start_view_user))
-
-    # Inline tugmani boasilganda ushlab oluvchi funksiya
-    dp.add_handler(CallbackQueryHandler(button_callback))
 
     # IMtihonni boshlash uchun asosiy funksiya
     handler = ConversationHandler(
@@ -143,6 +120,23 @@ def main():
         },
         fallbacks=[CommandHandler('cancel', cancel)],
     ))
+
+    dp.add_handler(ConversationHandler(
+        entry_points=[MessageHandler(Filters.regex(r'^Xabar yuborish$'), send_message)],
+        states={
+            CHOOSING: [CallbackQueryHandler(button)],
+            SENDING_MESSAGE: [MessageHandler(Filters.text & ~Filters.command, handle_message)],
+            SENDING_PHOTO: [MessageHandler(Filters.photo, handle_photo)],
+            SENDING_VIDEO: [MessageHandler(Filters.video, handle_video)],
+            SENDING_FILE: [MessageHandler(Filters.document, handle_file)],
+        },
+        fallbacks=[CommandHandler('start', start)],
+    ))
+
+
+    # Inline tugmani boasilganda ushlab oluvchi funksiya
+    dp.add_handler(CallbackQueryHandler(button_callback))
+
 
     # Har ehtimolga qarshi botga har xil habar yuborilsa start funksiyani chaqiradigan funksiya
     dp.add_handler(MessageHandler(Filters.all, start))

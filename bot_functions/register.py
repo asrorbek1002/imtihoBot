@@ -36,5 +36,5 @@ def end_register(update, context):
     ))
     con.commit()
     con.close()
-    update.message.reply_text("Siz ro'yxatdan o'tdingiz\n/start comandasini qayta kiriting")
+    update.message.reply_text("<b>Siz ro'yxatdan o'tdingiz</b>\n<i>/start comandasini qayta kiriting</i>", parse_mode="HTML")
     return ConversationHandler.END
