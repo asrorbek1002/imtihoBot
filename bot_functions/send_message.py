@@ -1,6 +1,7 @@
 from telegram.ext import ConversationHandler, CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ReplyKeyboardRemove
-from .base import create_connection, delete_table, get_questions_count
+from .base import create_connection, delete_table, get_questions_count, get_Admin_ids
+from .reminder_of_time import countdown
 import threading
 from telegram.error import TelegramError
 import datetime
@@ -14,23 +15,6 @@ CHOOSING, SENDING_MESSAGE, SENDING_PHOTO, SENDING_VIDEO, SENDING_FILE = range(5)
 tashkent_tz = pytz.timezone('Asia/Tashkent')
 
 TIME, DURATION = range(2)
-
-
-def get_admin_ids_by_job():
-    conn = create_connection()
-    cur = conn.cursor()
-    
-    # SQL query to select user_ids where job is 'teacher' or 'Admin'
-    query = "SELECT user_id FROM users WHERE job IN ('teacher', 'Admin')"
-    cur.execute(query)
-    
-    # Fetch all matching user_ids
-    user_ids = cur.fetchall()
-    
-    conn.close()
-    
-    # Return a list of user_ids
-    return [user_id_tuple[0] for user_id_tuple in user_ids]
 
 
 def vaqt(update, context):
@@ -92,7 +76,7 @@ def send_task(update, context):
                 context.bot.send_photo(chat_id=user_id, photo=question_photo, reply_markup=reply_m)
             except TelegramError as e:
                 print(e)
-
+    countdown(duration, context)
     con.close()
     return ConversationHandler.END
 
@@ -153,7 +137,7 @@ def format_user_answers(context: CallbackContext):
     all_users_summary.sort(key=lambda x: x[0], reverse=True)
 
     # Adminlarga barcha foydalanuvchilarning tartiblangan natijalarini yuborish
-    admin_ids = get_admin_ids_by_job()
+    admin_ids = get_Admin_ids()
     all_users_summary_text = "\n".join([f"{i+1}. {user_summary.strip()}" for i, (_, user_summary) in enumerate(all_users_summary)])
     for admin_id in admin_ids:
         try:
@@ -211,7 +195,7 @@ def get_duration(update, context) -> int:
 
 # Savollarni foydalanuvchilarga yuborish uchun handler
 def send_task_next(context):
-
+    durationn = context.user_data['duration']
     con = create_connection()
     curs = con.cursor()
 
@@ -226,7 +210,7 @@ def send_task_next(context):
     # Foydalanuvchilarga savollarni yuborish
     for usr in users:
         user_id = usr[0]  # user_id ni olish
-        context.bot.send_message(chat_id=user_id, text=f"Imtihon {context.user_data['duration']} datqiqa davom etadi hammaga omad!!!")
+        context.bot.send_message(chat_id=user_id, text=f"Imtihon {durationn} datqiqa davom etadi hammaga omad!!!")
         for i in savol:
             try:
                 question_id = i[0]
@@ -242,7 +226,8 @@ def send_task_next(context):
                 context.bot.send_photo(chat_id=user_id, photo=question_photo, reply_markup=reply_m)
             except TelegramError as e:
                 print(e)
-    admin_ids = get_admin_ids_by_job()
+    admin_ids = get_Admin_ids()
+    countdown(durationn, context)
     for ids in admin_ids:
         try:
             context.bot.send_message(chat_id=ids, text='Imtihon boshlandi savollar barcha foydalanuvchilarga yuborildi')
@@ -308,7 +293,7 @@ def format_user_answers_next(context: CallbackContext):
     all_users_summary.sort(key=lambda x: x[0], reverse=True)
 
     # Adminlarga barcha foydalanuvchilarning tartiblangan natijalarini yuborish
-    admin_ids = get_admin_ids_by_job()
+    admin_ids = get_Admin_ids()
     all_users_summary_text = "\n".join([f"{i+1}. {user_summary.strip()}" for i, (_, user_summary) in enumerate(all_users_summary)])
     for admin_id in admin_ids:
         try:

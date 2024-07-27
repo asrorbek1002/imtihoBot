@@ -71,3 +71,20 @@ def get_Admin_ids():
     
     # Return a list of user_ids
     return [user_id_tuple[0] for user_id_tuple in user_ids]
+
+
+def get_Users_ids():
+    conn = create_connection()
+    cur = conn.cursor()
+    
+    # SQL query to select user_ids where job is 'teacher' or 'Admin'
+    query = "SELECT user_id FROM users "
+    cur.execute(query)
+    
+    # Fetch all matching user_ids
+    user_ids = cur.fetchall()
+    
+    conn.close()
+    
+    # Return a list of user_ids
+    return [user_id_tuple[0] for user_id_tuple in user_ids]
