@@ -61,7 +61,7 @@ def delete_base(update, context):
 
 def main():
     # Botni backendga ulash
-    updater = Updater(token='7045575392:AAEkOaUsRov-yUMWErthtEE1ycMnpmAUM8Q')
+    updater = Updater(token='6492517406:AAFFyhR_bqEbvcz9JgFMU7rv426H3PkyqE0')
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", get_user_info, Filters.regex("tg_")))

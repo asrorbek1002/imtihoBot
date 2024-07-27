@@ -1,6 +1,6 @@
 from telegram.ext import ConversationHandler, CallbackContext
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ReplyKeyboardRemove
-from .base import create_connection, delete_table
+from .base import create_connection, delete_table, get_questions_count
 import threading
 from telegram.error import TelegramError
 import datetime
@@ -14,6 +14,7 @@ CHOOSING, SENDING_MESSAGE, SENDING_PHOTO, SENDING_VIDEO, SENDING_FILE = range(5)
 tashkent_tz = pytz.timezone('Asia/Tashkent')
 
 TIME, DURATION = range(2)
+
 
 def get_admin_ids_by_job():
     conn = create_connection()
@@ -30,6 +31,7 @@ def get_admin_ids_by_job():
     
     # Return a list of user_ids
     return [user_id_tuple[0] for user_id_tuple in user_ids]
+
 
 def vaqt(update, context):
     user_id = update.message.from_user.id
@@ -94,7 +96,9 @@ def send_task(update, context):
     con.close()
     return ConversationHandler.END
 
+
 def format_user_answers(context: CallbackContext):
+    quest_count = get_questions_count()
     conn = create_connection()
     cur = conn.cursor()
     
@@ -104,14 +108,12 @@ def format_user_answers(context: CallbackContext):
     
     # Natijalarni saqlash uchun ro'yxatlar
     all_users_summary = []
-    zero_incorrect_summary = []
-    one_incorrect_summary = []
 
     # User_id'larni aylantirib chiqing va adminga xabar yuboring
     for user in user_ids:
         user_id = user[0]  # Extract the actual user_id from the tuple
         first_name = user[1]
-        phone_number = user[3]
+        last_name = user[2]
 
         user_answers = context.dispatcher.user_data.get(user_id, {})
 
@@ -140,46 +142,28 @@ def format_user_answers(context: CallbackContext):
             if correct_count or incorrect_count >=1:
                 context.bot.send_message(chat_id=user_id, text=response_text, parse_mode="HTML")
 
-                if incorrect_count == 0:
-                    user_summary = (
-                        f"<b><a href='tg://user?id={user_id}'>{first_name}</a>ning Imtihon natijalari:\n\n"
-                        f"\t✅To'g'ri javoblar: {correct_count} ta\n"
-                        f"\t❌Noto'g'ri javoblar: {incorrect_count} ta</b>\n"
-                        "➖➖➖➖➖➖"
-                    )
-                    zero_incorrect_summary.append(user_summary)
-                
-                elif incorrect_count == 1:
-                    user_summary = (
-                        f"<b><a href='tg://user?id={user_id}'>{first_name}</a>ning Imtihon natijalari:\n\n"
-                        f"\t✅To'g'ri javoblar: {correct_count} ta\n"
-                        f"\t❌Noto'g'ri javoblar: {incorrect_count} ta</b>\n"
-                        "➖➖➖➖➖➖"
-                    )
-                    one_incorrect_summary.append(user_summary)
+                total_correct_multiplied = correct_count * 2
+                user_summary = f"{first_name} {last_name} {total_correct_multiplied} ball\n"
+                all_users_summary.append((total_correct_multiplied, user_summary))
 
         except TelegramError as e:
             print(e)
     
-    # Adminlarga incorrect_count 0 va 1 bo'lgan foydalanuvchilarning natijalarini yuborish
+    # Hamma foydalanuvchilarning natijalarini kamayish tartibida tartiblang
+    all_users_summary.sort(key=lambda x: x[0], reverse=True)
+
+    # Adminlarga barcha foydalanuvchilarning tartiblangan natijalarini yuborish
     admin_ids = get_admin_ids_by_job()
-    if zero_incorrect_summary:
-        zero_incorrect_summary_text = "\n\n".join(zero_incorrect_summary)
-        for admin_id in admin_ids:
-            try:
-                context.bot.send_message(chat_id=admin_id, text=f"<b>Jami xato qilmagan foydalanuvchilar:</b>\n\n{zero_incorrect_summary_text}", parse_mode="HTML")
-            except TelegramError as e:
-                print(e)
+    all_users_summary_text = "\n".join([f"{i+1}. {user_summary.strip()}" for i, (_, user_summary) in enumerate(all_users_summary)])
+    for admin_id in admin_ids:
+        try:
+            context.bot.send_message(chat_id=admin_id, text=f"<b>{quest_count} talik testda qatnashgan ishtirokchilarning natijalari:\n\n{all_users_summary_text}</b>", parse_mode="HTML")
+        except TelegramError as e:
+            print(e)
     
-    if one_incorrect_summary:
-        one_incorrect_summary_text = "\n\n".join(one_incorrect_summary)
-        for admin_id in admin_ids:
-            try:
-                context.bot.send_message(chat_id=admin_id, text=f"<b>Jami 1 ta xato qilgan foydalanuvchilar:</b>\n\n{one_incorrect_summary_text}", parse_mode="HTML")
-            except TelegramError as e:
-                print(e)
     conn.close()
     delete_table()
+
 
 def start_task_next(update, context) -> None:
     user_id = update.message.from_user.id
@@ -258,13 +242,18 @@ def send_task_next(context):
                 context.bot.send_photo(chat_id=user_id, photo=question_photo, reply_markup=reply_m)
             except TelegramError as e:
                 print(e)
-
+    admin_ids = get_admin_ids_by_job()
+    for ids in admin_ids:
+        try:
+            context.bot.send_message(chat_id=ids, text='Imtihon boshlandi savollar barcha foydalanuvchilarga yuborildi')
+        except TelegramError as e:
+            print(e)
     con.close()
     return ConversationHandler.END
 
 # Test natijalarini foydalanuvchining o'ziga hamda adminga yuboruvchi funksiya
-
 def format_user_answers_next(context: CallbackContext):
+    quest_count = get_questions_count()
     conn = create_connection()
     cur = conn.cursor()
     
@@ -274,14 +263,12 @@ def format_user_answers_next(context: CallbackContext):
     
     # Natijalarni saqlash uchun ro'yxatlar
     all_users_summary = []
-    zero_incorrect_summary = []
-    one_incorrect_summary = []
 
     # User_id'larni aylantirib chiqing va adminga xabar yuboring
     for user in user_ids:
         user_id = user[0]  # Extract the actual user_id from the tuple
         first_name = user[1]
-        phone_number = user[3]
+        last_name = user[2]
 
         user_answers = context.dispatcher.user_data.get(user_id, {})
 
@@ -310,46 +297,28 @@ def format_user_answers_next(context: CallbackContext):
             if correct_count or incorrect_count >=1:
                 context.bot.send_message(chat_id=user_id, text=response_text, parse_mode="HTML")
 
-                if incorrect_count == 0:
-                    user_summary = (
-                        f"<b><a href='tg://user?id={user_id}'>{first_name}</a>ning Imtihon natijalari:\n\n"
-                        f"\t✅To'g'ri javoblar: {correct_count} ta\n"
-                        f"\t❌Noto'g'ri javoblar: {incorrect_count} ta</b>\n"
-                        "➖➖➖➖➖➖"
-                    )
-                    zero_incorrect_summary.append(user_summary)
-                
-                elif incorrect_count == 1:
-                    user_summary = (
-                        f"<b><a href='tg://user?id={user_id}'>{first_name}</a>ning Imtihon natijalari:\n\n"
-                        f"\t✅To'g'ri javoblar: {correct_count} ta\n"
-                        f"\t❌Noto'g'ri javoblar: {incorrect_count} ta</b>\n"
-                        "➖➖➖➖➖➖"
-                    )
-                    one_incorrect_summary.append(user_summary)
+                total_correct_multiplied = correct_count * 2
+                user_summary = f"{first_name} {last_name} {total_correct_multiplied} ball\n"
+                all_users_summary.append((total_correct_multiplied, user_summary))
 
         except TelegramError as e:
             print(e)
     
-    # Adminlarga incorrect_count 0 va 1 bo'lgan foydalanuvchilarning natijalarini yuborish
+    # Hamma foydalanuvchilarning natijalarini kamayish tartibida tartiblang
+    all_users_summary.sort(key=lambda x: x[0], reverse=True)
+
+    # Adminlarga barcha foydalanuvchilarning tartiblangan natijalarini yuborish
     admin_ids = get_admin_ids_by_job()
-    if zero_incorrect_summary:
-        zero_incorrect_summary_text = "\n\n".join(zero_incorrect_summary)
-        for admin_id in admin_ids:
-            try:
-                context.bot.send_message(chat_id=admin_id, text=f"<b>Jami xato qilmagan foydalanuvchilar:</b>\n\n{zero_incorrect_summary_text}", parse_mode="HTML")
-            except TelegramError as e:
-                print(e)
+    all_users_summary_text = "\n".join([f"{i+1}. {user_summary.strip()}" for i, (_, user_summary) in enumerate(all_users_summary)])
+    for admin_id in admin_ids:
+        try:
+            context.bot.send_message(chat_id=admin_id, text=f"<b>{quest_count} talik testda qatnashgan ishtirokchilarning natijalari:\n\n{all_users_summary_text}</b>", parse_mode="HTML")
+        except TelegramError as e:
+            print(e)
     
-    if one_incorrect_summary:
-        one_incorrect_summary_text = "\n\n".join(one_incorrect_summary)
-        for admin_id in admin_ids:
-            try:
-                context.bot.send_message(chat_id=admin_id, text=f"<b>Jami 1 ta xato qilgan foydalanuvchilar:</b>\n\n{one_incorrect_summary_text}", parse_mode="HTML")
-            except TelegramError as e:
-                print(e)
     conn.close()
     delete_table()
+
 
 def send_message(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
@@ -373,6 +342,7 @@ def send_message(update: Update, context: CallbackContext):
         update.message.reply_text('Qanday xabar yubormoqchisiz?', reply_markup=reply_markup)
     return CHOOSING
 
+
 def button(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
@@ -390,6 +360,7 @@ def button(update: Update, context: CallbackContext):
     elif choice == SENDING_FILE:
         query.edit_message_text(text="Fayl yuboring:")
         return SENDING_FILE
+
 
 def broadcast(update: Update, context: CallbackContext, media_type=None):
     conn = create_connection()
@@ -409,12 +380,14 @@ def broadcast(update: Update, context: CallbackContext, media_type=None):
         elif media_type == 'file':
             context.bot.send_document(chat_id=user_id, document=context.user_data['file'], caption=context.user_data['caption'])
 
+
 def handle_message(update: Update, context: CallbackContext):
     text = update.message.text
     context.user_data['message'] = text
     update.message.reply_text("Xabarni qabul qildim. Hamma foydalanuvchilarga yuborayapman.")
     broadcast(update, context, 'text')
     return ConversationHandler.END
+
 
 def handle_photo(update: Update, context: CallbackContext):
     photo = update.message.photo[-1].file_id
@@ -425,6 +398,7 @@ def handle_photo(update: Update, context: CallbackContext):
     broadcast(update, context, 'photo')
     return ConversationHandler.END
 
+
 def handle_video(update: Update, context: CallbackContext):
     video = update.message.video.file_id
     caption = update.message.caption or ""
@@ -433,6 +407,7 @@ def handle_video(update: Update, context: CallbackContext):
     update.message.reply_text("Videoni qabul qildim. Hamma foydalanuvchilarga yuborayapman.")
     broadcast(update, context, 'video')
     return ConversationHandler.END
+
 
 def handle_file(update: Update, context: CallbackContext):
     document = update.message.document.file_id

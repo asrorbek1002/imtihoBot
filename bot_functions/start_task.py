@@ -1,5 +1,5 @@
-from telegram import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ConversationHandler, MessageHandler, Filters, CommandHandler
+from telegram import KeyboardButton, ReplyKeyboardMarkup
+from telegram.ext import ConversationHandler
 from .base import create_table, save_data, get_questions_count
 import sqlite3
 
@@ -59,7 +59,7 @@ def task_count(update, context):
                 ]
             ]
             reply_markup=ReplyKeyboardMarkup(keyb, one_time_keyboard=True, resize_keyboard=True)
-            update.message.reply_text("Testni muddatidan oldin boshlamoqchimisiz", reply_markup=reply_markup)
+            update.message.reply_text("Imtihon davom etmoqda tugashini kuting!", reply_markup=reply_markup)
             return start_task(update, context) 
         else:
             update.message.reply_text("Baza bo'sh \nTestlar sonini kiriting")

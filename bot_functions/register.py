@@ -40,7 +40,7 @@ def end_register(update, context):
     admins = get_Admin_ids()
     for i in admins:
         try:
-            context.bot.send_message(chat_id=i, text=f"<b>Yangi foyalanuvchi botdan ro'yxatdan o'tdi\n\nIsm: <a href='tg//user?id={user_id}'>{context.user_data['first_name']}</a>\n<i>Familiyasi</i>: {context.user_data['last_name']}\n<i>Telefon raqami</i>: {context.user_data['phone_number']}\n<i>Yoshi</i>: {age}</b>")
+            context.bot.send_message(chat_id=i, text=f"<b>Yangi foyalanuvchi botdan ro'yxatdan o'tdi\n\nIsm: <a href='tg//user?id={user_id}'>{context.user_data['first_name']}</a>\n<i>Familiyasi</i>: {context.user_data['last_name']}\n<i>Telefon raqami</i>: {context.user_data['phone_number']}\n<i>Yoshi</i>: {age}</b>", parse_mode="HTML")
         except TelegramError as e:
             print(e)
     return ConversationHandler.END

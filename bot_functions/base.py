@@ -55,6 +55,7 @@ def get_questions_count() -> int:
     connection.close()
     return count
 
+
 def get_Admin_ids():
     conn = create_connection()
     cur = conn.cursor()
