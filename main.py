@@ -1,11 +1,11 @@
 from telegram.ext import Updater, CommandHandler, ConversationHandler, MessageHandler, Filters, CallbackQueryHandler
-from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Bot
 from bot_functions.start_task import add_task, input_task, task_count, start_task, tech_menu
 from bot_functions.base import delete_table, create_connection
 from bot_functions.register import first_name, last_name, age, end_register
 from bot_functions.inline_button import button_callback
 from bot_functions.send_message import send_task, vaqt, start_task_next, get_time, get_duration, send_message, broadcast, button, handle_file, handle_message, handle_photo, handle_video
-from bot_functions.view_user import start_view_user, get_user_info
+from bot_functions.view_user import start_view_user, get_user_info, remove_user
 from bot_functions.add_teacher import add_teacher, handle_user_id, dell_teacher, handle_user_id_student
 from bot_functions.help import help
 
@@ -35,12 +35,22 @@ conn.close()
 
 
 def start(update, context):
+    print(update)
+    if update.message.chat.type != 'private':
+        return
+    bot: Bot = context.bot
+    bot_info = bot.get_me()
+    Bot_username = bot_info.id
     user_id = update.message.from_user.id
+    if Bot_username == user_id:
+        return
+    
     first_name = update.message.from_user.first_name
     conn = create_connection()
     cur = conn.cursor()
     cur.execute('SELECT user_id FROM users WHERE user_id=?', (user_id,))
     user_yes = cur.fetchone()
+
     reply_markup_contact = ReplyKeyboardMarkup([
         [KeyboardButton(text="Telefon kontaktinngizni ulashing", request_contact=True)]
     ], resize_keyboard=True, one_time_keyboard=True)
@@ -64,7 +74,11 @@ def main():
     updater = Updater(token='7045575392:AAEkOaUsRov-yUMWErthtEE1ycMnpmAUM8Q')
     dp = updater.dispatcher
 
+    # Foydalanuvchi malumotni ko'rish
     dp.add_handler(CommandHandler("start", get_user_info, Filters.regex("tg_")))
+
+    #  Foydalanuvchini bot bazasidan o'chirish
+    dp.add_handler(CommandHandler("start", get_user_info, Filters.regex("del_")))
 
     # /start comandasiga javob beruvchi funksiya
     dp.add_handler(CommandHandler('start', start))

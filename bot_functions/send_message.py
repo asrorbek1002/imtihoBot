@@ -129,6 +129,9 @@ def format_user_answers(context: CallbackContext):
                 total_correct_multiplied = correct_count * 2
                 user_summary = f"{first_name} {last_name} {total_correct_multiplied} ball\n"
                 all_users_summary.append((total_correct_multiplied, user_summary))
+                
+                # Foydalanuvchining context.user_data malumotlarini o'chirish
+                context.dispatcher.user_data.pop(user_id, None)
 
         except TelegramError as e:
             print(e)

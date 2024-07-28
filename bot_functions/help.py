@@ -27,8 +27,8 @@ def help(update, context):
 
 <i><b>Botning vazifasi:</b></i>
 
-<i>Bu bot online imtihon olishni onsonlashtiradigan bot bo'lib, uyda hech qayerga chiqmasdan hamma foydalanadigan telegramning o'zida imtihon olish kabi ishlarni bajarib insonlarning uzoqg'ini yaqin, qiyinini onson qiladi!
-</i>
+<i><b>Bu bot online imtihon olishni onsonlashtiradigan bot bo'lib, uyda hech qayerga chiqmasdan hamma foydalanadigan telegramning o'zida imtihon olish kabi ishlarni bajarib insonlarning uzoqg'ini yaqin, qiyinini onson qiladi!
+</b></i>
 <code>Agar botda xatolik yoki muammo bo'lsa adminga xabar bering: @Asrorbek_10_02</code>
 """, parse_mode="HTML")
     else:
