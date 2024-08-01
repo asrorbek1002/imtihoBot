@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, ConversationHandler
 from .base import create_connection
 
 # /add_teacher komandasi
@@ -29,6 +29,7 @@ def handle_user_id(update: Update, context: CallbackContext) -> None:
         update.message.reply_text(f"Foydalanuvchi ID {user_id} topilmadi.")
     
     conn.close()
+    return ConversationHandler.END
 
 
 
@@ -60,5 +61,4 @@ def handle_user_id_student(update: Update, context: CallbackContext) -> None:
         update.message.reply_text(f"Foydalanuvchi ID {user_id} topilmadi.")
     
     conn.close()
-
-
+    return ConversationHandler.END
