@@ -46,28 +46,25 @@ def start_task(update, context):
 
 def task_count(update, context):
     text = update.message.text
-    if text == "Imtihon boshlash":
-        conn = create_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='questions';")
-        table_exists = cursor.fetchone()
-        if table_exists:
-            keyb = [
-                [
-                    KeyboardButton(text="Boshlаsh"),
-                    KeyboardButton(text="Bekor qilish")
-                ]
+    # if text == "Imtihon boshlash":
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='questions';")
+    table_exists = cursor.fetchone()
+    if table_exists:
+        keyb = [
+            [
+                KeyboardButton(text="Boshlаsh"),
+                KeyboardButton(text="Bekor qilish")
             ]
-            reply_markup=ReplyKeyboardMarkup(keyb, one_time_keyboard=True, resize_keyboard=True)
-            update.message.reply_text("Imtihon davom etmoqda tugashini kuting!", reply_markup=reply_markup)
-            return start_task(update, context) 
-        else:
-            update.message.reply_text("Baza bo'sh \nTestlar sonini kiriting")
-            create_table()
-            return 'TASK COUNT'
-    elif text == 'Bekor qilish':
-        update.message.reply_text("Jarayon bekor qilindi")
-        return ConversationHandler.END
+        ]
+        reply_markup=ReplyKeyboardMarkup(keyb, one_time_keyboard=True, resize_keyboard=True)
+        update.message.reply_text("Imtihon davom etmoqda tugashini kuting!", reply_markup=reply_markup)
+        return start_task(update, context) 
+    else:
+        update.message.reply_text("Baza bo'sh \nTestlar sonini kiriting")
+        create_table()
+        return 'TASK COUNT'
 
 
 
