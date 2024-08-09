@@ -90,7 +90,7 @@ def main():
     dp.add_handler(CommandHandler('dlt_base', delete_base))
 
     # Imtihonni boshlash uchun funksiya
-    dp.add_handler(MessageHandler(Filters.regex(r"^Testni boshlash$"), start_task))
+    # dp.add_handler(MessageHandler(Filters.regex(r"^Testni boshlash$"), start_task))
 
     # O'quvchilarni ro'yxatini olish uchun comanda
     dp.add_handler(MessageHandler(Filters.regex(r"^O'quvchilar ro'yxati$"), start_view_user))
@@ -101,7 +101,7 @@ def main():
 
     # IMtihonni boshlash uchun asosiy funksiya
     handler = ConversationHandler(
-        entry_points=[MessageHandler(Filters.regex(r"^Imtihon boshlash$"), task_count)],
+        entry_points=[MessageHandler(Filters.regex(r"^Testni boshlash$"), task_count)],
         states={
             'TASK COUNT':[MessageHandler(Filters.text & ~Filters.command, add_task)],
             'TASK PHOTO':[MessageHandler(Filters.photo , input_task)]
