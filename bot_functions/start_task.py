@@ -59,8 +59,8 @@ def task_count(update, context):
             ]
         ]
         reply_markup=ReplyKeyboardMarkup(keyb, one_time_keyboard=True, resize_keyboard=True)
-        update.message.reply_text("Imtihon davom etmoqda tugashini kuting!", reply_markup=reply_markup)
-        return start_task(update, context) 
+        update.message.reply_text("Bazada savollar borga o'xshaydi imtihonni boshlaysizmi\n\nBekor qilish uchun /dlt_base comandasini botga yuboring", reply_markup=reply_markup)
+        # return start_task(update, context) 
     else:
         update.message.reply_text("Baza bo'sh \nTestlar sonini kiriting")
         create_table()
