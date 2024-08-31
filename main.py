@@ -31,7 +31,7 @@ cur.execute("""CREATE TABLE IF NOT EXISTS users (
 cur.execute('SELECT COUNT(*) FROM users')
 count = cur.fetchone()[0]
 if count == 0:
-    # cur.execute(""" INSERT INTO users (user_id, first_name, last_name, job) VALUES (?, ?, ?, ?)""", (2119898471, 'Shoxrux', 'Ibrohimov', 'teacher'))
+    cur.execute(""" INSERT INTO users (user_id, first_name, last_name, job) VALUES (?, ?, ?, ?)""", (2119898471, 'Shoxrux', 'Ibrohimov', 'teacher'))
     cur.execute("""INSERT INTO users (user_id, first_name, last_name, job) VALUES (?, ?, ?, ?)""", (6194484795, 'Asrorbek', 'Aliqulov', 'Admin'))
 conn.commit()
 conn.close()
